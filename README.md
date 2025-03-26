@@ -1,158 +1,284 @@
-Below are the test case descriptions, test steps for execution, and expected results for the provided test cases, formatted clearly for each scenario related to the /user/v1/self/accounts-receivables API endpoint.
+using CashFlowCentralFlows;
+using EPay.Test.Utility;
+using EPay.Test;
+using Fiserv.CashFlowCentralTesting.Models;
+using Fiserv.CashFlowCentralTesting.Utilities;
+using Fiserv.CashFlowCentralTesting;
+using JsonFlatFileDataStore;
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using Fiserv.CashFlowCentralTesting.Models.Transactions;
+using Fiserv.CashFlowCentralTesting.Utilities.Attributes;
+using System.Net;
+using Fiserv.CashFlowCentralTesting.Models.Invoice;
+using CashFlowCentralCosmosCallers;
+using Bogus;
+using Fiserv.CashFlowCentralTesting.Models.Enrollment;
+using Fiserv.CashFlowCentralTesting.Models.Common;
+using EPay.Test.DB.Genesis;
+using System.Reflection;
+using EPay.Test.DB;
+using Fiserv.CashFlowCentralTesting.Models.ApplicationForm;
+using CashFlowCentralFlows;
+using CashFlowCentralApiTests.Tests.AccountReceivables;
+using EPay.Test.TestSubscriberRepositories.Models;
+using static Fiserv.CashFlowCentralTesting.LddMicroservice.LddMicroserviceCaller;
+using Fiserv.CashFlowCentralTesting.LddMicroservice;
+using ReportPortal.Client.Abstractions.Models;
+using static Fiserv.CashFlowCentralTesting.Models.Invoice.PostInvoiceRequest;
+using static Fiserv.CashFlowCentralTesting.Models.Invoice.CustomerInfo;
+using CashFlowCentralCosmosCallers;
+using REMIT_MASTER = EPay.Test.DB.Genesis.REMIT_MASTER;
+using Microsoft.Azure.Cosmos.Linq;
+using static Fiserv.CashFlowCentralTesting.Models.Invoice.PutInvoiceRequest;
 
-Test Case 1: Successful Generation with iFrame URL
-Test Case Description:
+namespace CashFlowCentralApiTests.Tests.Invoice
+{
+    [Parallelizable(ParallelScope.Fixtures)]
+    [FixtureLifeCycle(LifeCycle.SingleInstance)]
+    [Ignore("Ignoring the entire test suite to identify the root cause of junk data in invoice details from Cosmos DB")]
+    public class DeleteInvoiceTests
+    {
+        EPayTestContext epayTestContext;
+        CashFlowCentralCaller cashFlowCentralCaller;
+        CfcTestData currentTestData;
+        string subscriberAuthToken;
+        DataStore testDataStore;
+        private ILogger _log = TestSetup.Log;
+        private IConfiguration _config = TestSetup.Config;
+        CashFlowCentralTestDataProvider? testDataProvider;
+        InvoiceCosmosCaller invoiceCosmosCaller;
 
-Verify that a level 1 user providing all required fields with OnBoardingURLRequired set to '1' receives a 200 status code and a DMA integration token with an iFrame URL.
+        [OneTimeSetUp]
+        public void OneTimeSetup()
+        {
+            testDataStore = new CashFlowCentralTestDataProvider(_log, _config).TestDataStore;
+        }
 
-Test Steps for Execution:
+        [OneTimeTearDown]
+        public void OneTimeTeardown()
+        {
+            testDataStore.Dispose();
+        }
 
-Ensure the user is authenticated as a level 1 user with a valid authentication token.
-Ensure the tenant is configured for accounts receivables (AR).
-Ensure the subscriber is active.
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_1_token>
-Payload: {"OnBoardingURLRequired": "1"}
-Expected Result:
+        [SetUp]
+        public void Setup()
+        {
+            epayTestContext = new EPayTestContext(TestContext.CurrentContext, TestSetup.Log, TestContext.Parameters);
+            cashFlowCentralCaller = new CashFlowCentralCaller(epayTestContext, TestSetup.Config);
+            testDataProvider = new CashFlowCentralTestDataProvider(_log, _config);
+            currentTestData = testDataProvider.ProvideTestData(epayTestContext)!;
+            invoiceCosmosCaller = new InvoiceCosmosCaller(epayTestContext, TestSetup.Config);
+        }
 
-Status Code: 200
-Response Body: Contains a DMA integration token with an iframe_url field, e.g., {"token": "abc123", "iframe_url": "https://example.com/iframe"}.
-Test Case 2: Successful Generation without iFrame URL
-Test Case Description:
+        public string GenerateAuthenticationToken(string sponsorId, string subscriberId, string businessUserId)
+        {
+            using (var scope = ReportPortal.Shared.Context.Current.Log.BeginScope("**Authentication**"))
+            {
+                subscriberAuthToken = cashFlowCentralCaller.UserAuthGadget(sponsorId, subscriberId, businessUserId)?.AccessToken;
 
-Verify that a level 1 user providing all required fields with OnBoardingURLRequired set to '0' receives a 200 status code and a DMA integration token without an iFrame URL.
+                if (string.IsNullOrWhiteSpace(subscriberAuthToken))
+                {
+                    throw new Exception("SSO Login not successful");
+                }
+            }
+            return subscriberAuthToken;
+        }
 
-Test Steps for Execution:
+        [TearDown]
+        public void Teardown()
+        {
+            epayTestContext.Report.EndTest();
+        }
+        
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithActiveStatus()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            string ckfr_sbsr_id = currentTestData.Business.CheckfreeSubscriberId;
+            var sponsorId = currentTestData.Business.SponsorId;
+            var postInvoiceRequest = new PostInvoiceRequest().RandomPostInvoiceRequest();
+            postInvoiceRequest.status = InvoiceStatus.Active;
+            postInvoiceRequest.customerInfo.type = CustomerType.Business;
+            postInvoiceRequest.totalAmount = 1;    
+            var postInvoiceRsp = cashFlowCentralCaller.PostInvoice(postInvoiceRequest, subscriberAuthToken);      epayTestContext.Report.AreEqual("Verify status", "Created", postInvoiceRsp.HttpResponse.StatusCode);
+            var cosmosDbRes = invoiceCosmosCaller.GetInvoiceDetails(postInvoiceRequest.invoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice Status in Cosmos DB", "Active", cosmosDbRes.Result.FirstOrDefault().Status);
+            var deleteInvoiceRsp = cashFlowCentralCaller.DeleteInvoice(postInvoiceRequest.invoiceId, subscriberAuthToken);            
+            var cosmosDbRsp = invoiceCosmosCaller.GetInvoiceDetails(postInvoiceRequest.invoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice ID inCosmos DB", postInvoiceRequest.invoiceId, cosmosDbRsp.Result.FirstOrDefault().InvoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice Number in Cosmos DB", postInvoiceRequest.invoiceNumber, cosmosDbRsp.Result.FirstOrDefault().InvoiceNumber);
+            epayTestContext.Report.AreEqual("Verify Invoice Status in Cosmos DB", "Canceled", cosmosDbRsp.Result.FirstOrDefault().Status);            
+        }
 
-Ensure the user is authenticated as a level 1 user with a valid authentication token.
-Ensure the tenant is configured for accounts receivables (AR).
-Ensure the subscriber is active.
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_1_token>
-Payload: {"OnBoardingURLRequired": "0"}
-Expected Result:
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithDraftStatus()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            string ckfr_sbsr_id = currentTestData.Business.CheckfreeSubscriberId;
+            var sponsorId = currentTestData.Business.SponsorId;
+            var postInvoiceRequest = new PostInvoiceRequest().RandomPostInvoiceRequest();
+            postInvoiceRequest.status = InvoiceStatus.Draft;
+            postInvoiceRequest.customerInfo.type = CustomerType.Business;
+            postInvoiceRequest.totalAmount = 1;
+            var postInvoiceRsp = cashFlowCentralCaller.PostInvoice(postInvoiceRequest, subscriberAuthToken); epayTestContext.Report.AreEqual("Verify status", "Created", postInvoiceRsp.HttpResponse.StatusCode);
+            var cosmosDbRsp = invoiceCosmosCaller.GetInvoiceDetails(postInvoiceRequest.invoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice Status in Cosmos DB", postInvoiceRequest.status, cosmosDbRsp.Result.FirstOrDefault().Status);
+            var deleteInvoiceRsp = cashFlowCentralCaller.DeleteInvoice(postInvoiceRequest.invoiceId, subscriberAuthToken);            
+            var cosmosDbRes = invoiceCosmosCaller.GetInvoiceDetails(postInvoiceRequest.invoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice ID inCosmos DB", postInvoiceRequest.invoiceId, cosmosDbRes.Result.FirstOrDefault().InvoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice Number in Cosmos DB", postInvoiceRequest.invoiceNumber, cosmosDbRes.Result.FirstOrDefault().InvoiceNumber);
+            epayTestContext.Report.AreEqual("Verify Invoice Status in Cosmos DB", "Canceled", cosmosDbRes.Result.FirstOrDefault().Status);
+        }
+       
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithCanceledStatus()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            string ckfr_sbsr_id = currentTestData.Business.CheckfreeSubscriberId;
+            var sponsorId = currentTestData.Business.SponsorId;
+            var postInvoiceRequest = new PostInvoiceRequest().RandomPostInvoiceRequest();
+            postInvoiceRequest.status = InvoiceStatus.Draft;
+            postInvoiceRequest.customerInfo.type = CustomerType.Business;
+            postInvoiceRequest.totalAmount = 1;
+            var postInvoiceRsp = cashFlowCentralCaller.PostInvoice(postInvoiceRequest, subscriberAuthToken); epayTestContext.Report.AreEqual("Verify status", "Created", postInvoiceRsp.HttpResponse.StatusCode); var deleteInvoiceRsp = cashFlowCentralCaller.DeleteInvoice(postInvoiceRequest.invoiceId, subscriberAuthToken);
+            var cosmosDbRsp = invoiceCosmosCaller.GetInvoiceDetails(postInvoiceRequest.invoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice Status in Cosmos DB", "Canceled", cosmosDbRsp.Result.FirstOrDefault().Status);
+            var deleteInvoiceRes = cashFlowCentralCaller.DeleteInvoice(postInvoiceRequest.invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify Error type", "/problems/invoice-alreadycanceled", deleteInvoiceRes.Type);
+            epayTestContext.Report.AreEqual("Verify Error title", "Invoice already canceled", deleteInvoiceRes.Title);
+            epayTestContext.Report.AreEqual("Verify Error status", "400", deleteInvoiceRes.Status);
+            epayTestContext.Report.AreEqual("Verify Error detail", "Invoice was previously canceled.", deleteInvoiceRes.Detail);
+            epayTestContext.Report.AreEqual("Verify Error instance", "/user/v1/self/arinvoices/" + postInvoiceRequest.invoiceId, deleteInvoiceRes.Instance);
+        }
+        
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithFiledStatus()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            string ckfr_sbsr_id = currentTestData.Business.CheckfreeSubscriberId;
+            var sponsorId = currentTestData.Business.SponsorId;
+            var postInvoiceRequest = new PostInvoiceRequest().RandomPostInvoiceRequest();
+            postInvoiceRequest.status = InvoiceStatus.Draft;
+            postInvoiceRequest.customerInfo.type = CustomerType.Business;
+            postInvoiceRequest.totalAmount = 1;
+            var postInvoiceRsp = cashFlowCentralCaller.PostInvoice(postInvoiceRequest, subscriberAuthToken); epayTestContext.Report.AreEqual("Verify status", "Created", postInvoiceRsp.HttpResponse.StatusCode);
 
-Status Code: 200
-Response Body: Contains a DMA integration token without an iframe_url field, e.g., {"token": "abc123"}.
-Test Case 3: Validation Error - Missing Required Field
-Test Case Description:
+            var putInvoiceRequest = new PutInvoiceRequest().RandomPutInvoiceRequest();
+            putInvoiceRequest.invoiceNumber = postInvoiceRequest.invoiceNumber;
+            putInvoiceRequest.status = PutInvoiceStatus.Filed;
+            putInvoiceRequest.customerInfo.type = CustomerType.Business;
+            putInvoiceRequest.totalAmount = 1;
+            var putInvoiceRes = cashFlowCentralCaller.PutInvoice(putInvoiceRequest, postInvoiceRequest.invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify Modify invoice success", "OK", putInvoiceRes.HttpResponse.StatusCode);
 
-Verify that omitting the OnBoardingURLRequired field results in a 400 status code with a "Validation Error" message.
+            var cosmosDbRsp = invoiceCosmosCaller.GetInvoiceDetails(postInvoiceRequest.invoiceId);
+            epayTestContext.Report.AreEqual("Verify Invoice Status in Cosmos DB", "Filed", cosmosDbRsp.Result.FirstOrDefault().Status);
+            var deleteInvoiceRes = cashFlowCentralCaller.DeleteInvoice(postInvoiceRequest.invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify Error type", "/problems/invoice-invalidstatus", deleteInvoiceRes.Type);
+            epayTestContext.Report.AreEqual("Verify Error title", "Invalid invoice status", deleteInvoiceRes.Title);
+            epayTestContext.Report.AreEqual("Verify Error status", "400", deleteInvoiceRes.Status);
+            epayTestContext.Report.AreEqual("Verify Error detail", "The status of the invoice does not allow to be deleted.", deleteInvoiceRes.Detail);
+            epayTestContext.Report.AreEqual("Verify Error instance", "/user/v1/self/arinvoices/"+ postInvoiceRequest.invoiceId, deleteInvoiceRes.Instance);
+        }
+        
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithPaidStatus()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            var invoiceId = "GuestInvoice139";
+            var getInvoiceRsp = cashFlowCentralCaller.GetInvoiceByIDUserRoute(invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify invoice status", "Paid", getInvoiceRsp.data.Status);
+            var deleteInvoiceRes = cashFlowCentralCaller.DeleteInvoice(invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify Error type", "/problems/invoice-invalidstatus", deleteInvoiceRes.Type);
+            epayTestContext.Report.AreEqual("Verify Error title", "Invalid invoice status", deleteInvoiceRes.Title);
+            epayTestContext.Report.AreEqual("Verify Error status", "400", deleteInvoiceRes.Status);
+            epayTestContext.Report.AreEqual("Verify Error detail", "The status of the invoice does not allow to be deleted.", deleteInvoiceRes.Detail);
+            epayTestContext.Report.AreEqual("Verify Error instance", "/user/v1/self/arinvoices/" + invoiceId, deleteInvoiceRes.Instance);
+        }
 
-Test Steps for Execution:
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithFailedStatus()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            var invoiceId = "GuestInvoice167";
+            var getInvoiceRsp = cashFlowCentralCaller.GetInvoiceByIDUserRoute(invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify invoice status", "Expired", getInvoiceRsp.data.Status);
+            var deleteInvoiceRes = cashFlowCentralCaller.DeleteInvoice(invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify Error type", "/problems/invoice-invalidstatus", deleteInvoiceRes.Type);
+            epayTestContext.Report.AreEqual("Verify Error title", "Invalid invoice status", deleteInvoiceRes.Title);
+            epayTestContext.Report.AreEqual("Verify Error status", "400", deleteInvoiceRes.Status);
+            epayTestContext.Report.AreEqual("Verify Error detail", "The status of the invoice does not allow to be deleted.", deleteInvoiceRes.Detail);
+            epayTestContext.Report.AreEqual("Verify Error instance", "/user/v1/self/arinvoices/" + invoiceId, deleteInvoiceRes.Instance);
+        }
 
-Ensure the user is authenticated as a level 1 user with a valid authentication token.
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_1_token>
-Payload: {} (empty payload)
-Expected Result:
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithPendingStatus()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            var invoiceId = "InvoiceDetail12323";
+            var getInvoiceRsp = cashFlowCentralCaller.GetInvoiceByIDUserRoute(invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify invoice status", "Pending", getInvoiceRsp.data.Status);
+            var deleteInvoiceRes = cashFlowCentralCaller.DeleteInvoice(invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify Error type", "/problems/invoice-invalidstatus", deleteInvoiceRes.Type);
+            epayTestContext.Report.AreEqual("Verify Error title", "Invalid invoice status", deleteInvoiceRes.Title);
+            epayTestContext.Report.AreEqual("Verify Error status", "400", deleteInvoiceRes.Status);
+            epayTestContext.Report.AreEqual("Verify Error detail", "The status of the invoice does not allow to be deleted.", deleteInvoiceRes.Detail);
+            epayTestContext.Report.AreEqual("Verify Error instance", "/user/v1/self/arinvoices/" + invoiceId, deleteInvoiceRes.Instance);
+        }
+        //TTL Calculation
+        [Test]
+        [DataRefresh(RefreshMethodName = "CreateBusinessWithARCapable")]
+        public async Task DeleteInvoiceWithInvalidInvoiceId()
+        {
+            var subscriberAuthToken = GenerateAuthenticationToken(currentTestData.Business.SponsorId, currentTestData.Business.SubscriberId, currentTestData.Business.BusinessUserId);
+            var invoiceId = "Invalid";
+            var deleteInvoiceRes = cashFlowCentralCaller.DeleteInvoice(invoiceId, subscriberAuthToken);
+            epayTestContext.Report.AreEqual("Verify Error type", "/problems/invoice-notfound", deleteInvoiceRes.Type);
+            epayTestContext.Report.AreEqual("Verify Error title", "Invoice not found", deleteInvoiceRes.Title);
+            epayTestContext.Report.AreEqual("Verify Error status", "400", deleteInvoiceRes.Status);
+            epayTestContext.Report.AreEqual("Verify Error detail", "Invoice not found.", deleteInvoiceRes.Detail);
+            epayTestContext.Report.AreEqual("Verify Error instance", "/user/v1/self/arinvoices/" + invoiceId, deleteInvoiceRes.Instance);
+        }
 
-Status Code: 400
-Response Body: {"error": "Validation Error"}
-Test Case 4: Unauthorized - Level 2 User
-Test Case Description:
+        //AR Enrollment end-to-end flow pending added the existing data in json according to datarefresh for time being 
+        private CfcTestData CreateBusinessWithARCapable(EPayTestContext epayTestContext, ILogger logger, IConfiguration config)
+        {
+            using (var scope = ReportPortal.Shared.Context.Current.Log.BeginScope($"**Data creation method: {MethodBase.GetCurrentMethod().Name}**"))
+            {
+                var faker = new Faker("en");
+                string sponsorId = "12856";
+                cashFlowCentralCaller = new CashFlowCentralCaller(epayTestContext, config);
+                EnrollmentFlows enrollmentFlow = new EnrollmentFlows(epayTestContext, config);
+                var testBusiness = enrollmentFlow.CreateRandomTestBusiness(sponsorId);
+                CfcTestData cfcTestData = new CfcTestData { Business = testBusiness };             
+                enrollmentFlow.UpdateBusinessToAPARPro(cfcTestData.Business);
+                subscriberAuthToken = cashFlowCentralCaller.UserAuthGadget(testBusiness.SponsorId, testBusiness.SubscriberId, testBusiness.BusinessUserId)?.AccessToken;
+                ApplicationFormFlows applicationFlow = new ApplicationFormFlows(epayTestContext, config);                
+                var postApplicationFormRequest = new PostApplicationFormRequest().RandomPostApplicationFormRequest();
+                postApplicationFormRequest.DebitBankAccountId = testBusiness.BankAccount.CommonId;
+                postApplicationFormRequest.CreditBankAccountId = testBusiness.BankAccount.CommonId;
+                var postApplication = cashFlowCentralCaller.PostApplicationForm(postApplicationFormRequest, subscriberAuthToken);
+                                
+                return cfcTestData;
+                // Patch LDD
 
-Verify that a level 2 user attempting to generate the token receives a 401 status code with an "Unauthorize" message.
+                //Merchant Vetting update API
+            }
+        }
 
-Test Steps for Execution:
-
-Ensure the user is authenticated as a level 2 user with a valid authentication token.
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_2_token>
-Payload: {"OnBoardingURLRequired": "1"}
-Expected Result:
-
-Status Code: 401
-Response Body: {"error": "Unauthorize"}
-Test Case 5: Forbidden - Tenant Not Configured
-Test Case Description:
-
-Verify that a level 1 user receives a 403 status code with a "Forbidden" message when the tenant is not configured for the AR package.
-
-Test Steps for Execution:
-
-Ensure the user is authenticated as a level 1 user with a valid authentication token.
-Ensure the tenant is not configured for accounts receivables (AR).
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_1_token>
-Payload: {"OnBoardingURLRequired": "1"}
-Expected Result:
-
-Status Code: 403
-Response Body: {"error": "Forbidden"}
-Test Case 6: Not Found - Inactive Subscriber
-Test Case Description:
-
-Verify that a level 1 user receives a 404 status code with a "Not Found" message when the subscriber is inactive.
-
-Test Steps for Execution:
-
-Ensure the user is authenticated as a level 1 user with a valid authentication token.
-Ensure the subscriber is inactive.
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_1_token>
-Payload: {"OnBoardingURLRequired": "1"}
-Expected Result:
-
-Status Code: 404
-Response Body: {"error": "Not Found"}
-Test Case 7: Internal Server Error
-Test Case Description:
-
-Verify that an environment issue or network failure results in a 500 status code with an "Internal Server Error" message.
-
-Test Steps for Execution:
-
-Ensure the user is authenticated as a level 1 user with a valid authentication token.
-Simulate an environment or network failure (e.g., via mocking or fault injection).
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_1_token>
-Payload: {"OnBoardingURLRequired": "1"}
-Expected Result:
-
-Status Code: 500
-Response Body: {"error": "Internal Server Error"}
-Test Case 8: Invalid Authentication Token
-Test Case Description:
-
-Verify that an invalid authentication token results in a 401 status code.
-
-Test Steps for Execution:
-
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <invalid_token>
-Payload: {"OnBoardingURLRequired": "1"}
-Expected Result:
-
-Status Code: 401
-Response Body: Contains an error message, e.g., {"error": "Invalid Token"} (exact message may vary but should indicate authentication failure).
-Test Case 9: Missing Authentication Token
-Test Case Description:
-
-Verify that omitting the authentication token results in a 401 status code.
-
-Test Steps for Execution:
-
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: None (omit the Authorization header)
-Payload: {"OnBoardingURLRequired": "1"}
-Expected Result:
-
-Status Code: 401
-Response Body: Contains an error message, e.g., {"error": "Authentication Required"} (exact message may vary but should indicate authentication failure).
-Test Case 10: Validation Error - Invalid OnBoardingURLRequired Value
-Test Case Description:
-
-Verify that providing an invalid value for OnBoardingURLRequired (e.g., '2') results in a 400 status code with a "Validation Error" message.
-
-Test Steps for Execution:
-
-Ensure the user is authenticated as a level 1 user with a valid authentication token.
-Send a POST request to /user/v1/self/accounts-receivables with the following:
-Headers: Authorization: Bearer <valid_level_1_token>
-Payload: {"OnBoardingURLRequired": "2"}
-Expected Result:
-
-Status Code: 400
-Response Body: {"error": "Validation Error"}
-These test cases cover various success and failure scenarios for the API endpoint, ensuring comprehensive validation of its functionality, authentication, authorization, and error handling. Each test case includes a clear description, detailed execution steps incorporating preconditions where applicable, and precise expected results.
+    }
+}
