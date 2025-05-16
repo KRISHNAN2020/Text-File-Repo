@@ -1,0 +1,40 @@
+
+Throw and Throws Explanation  :
+
+throw:
+Used to create custom exceptions or throw built-in exceptions when a specific error condition occurs.
+Example: If a method receives invalid input, you can throw an IllegalArgumentException.
+throws:
+Used to specify that a method might throw exceptions, so the caller must handle them (using try-catch) or propagate them further (by adding throws to the caller’s signature).
+Example: A method reading a file might declare throws IOException to indicate potential I/O errors.
+
+
+
+public class ThrowVsThrowsExample {
+    // Method that declares it might throw an exception
+    public static void checkAge(int age) throws IllegalArgumentException {
+        if (age < 18) {
+            // Explicitly throw an exception
+            throw new IllegalArgumentException("Age must be 18 or older!");
+        } else {
+            System.out.println("Age is valid: " + age);
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            // Call the method that might throw an exception
+            checkAge(15);
+        } catch (IllegalArgumentException e) {
+            // Handle the thrown exception
+            System.out.println("Exception caught: " + e.getMessage());
+        }
+
+        // Try with a valid age
+        try {
+            checkAge(20);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Exception caught: " + e.getMessage());
+        }
+    }
+}
