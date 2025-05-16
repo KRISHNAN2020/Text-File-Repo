@@ -1,0 +1,80 @@
+
+
+NullPointerException
+Why It Occurs: Accessing a method or variable on a null object reference.
+How to Solve: Check for null before accessing (e.g., if (obj != null)). Initialize objects properly.
+ArrayIndexOutOfBoundsException
+Why It Occurs: Accessing an array index that doesn’t exist (e.g., arr[5] for a 3-element array).
+How to Solve: Ensure the index is within bounds (e.g., i < arr.length). Use loops safely.
+ClassCastException
+Why It Occurs: Trying to cast an object to an incompatible type (e.g., String s = (String) obj).
+How to Solve: Use instanceof to check the type before casting (e.g., if (obj instanceof String)).
+IllegalArgumentException
+Why It Occurs: Passing an invalid argument to a method (e.g., negative age in setAge(-5)).
+How to Solve: Validate arguments before passing (e.g., if (age < 0) throw new IllegalArgumentException()).
+NumberFormatException
+Why It Occurs: Converting an invalid string to a number (e.g., Integer.parseInt("abc")).
+How to Solve: Validate the string format (e.g., use try-catch or check if the string contains digits).
+FileNotFoundException
+Why It Occurs: Trying to access a file that doesn’t exist (e.g., new FileReader("missing.txt")).
+How to Solve: Check if the file exists (e.g., new File("path").exists()) before accessing.
+IOException
+Why It Occurs: General I/O error, like failing to read/write a file (e.g., file is locked).
+How to Solve: Use try-catch to handle I/O errors gracefully. Ensure proper resource closure.
+ConcurrentModificationException
+Why It Occurs: Modifying a collection (e.g., ArrayList) while iterating over it with a loop.
+How to Solve: Use the iterator’s remove() method or create a copy of the collection to modify.
+UnsupportedOperationException
+Why It Occurs: Calling a method not supported by a collection (e.g., Arrays.asList().remove()).
+How to Solve: Check documentation; use a modifiable collection (e.g., new ArrayList<>(list)).
+ArithmeticException
+Why It Occurs: Mathematical error, like division by zero (e.g., int x = 5 / 0).
+How to Solve: Validate operands (e.g., if (denominator != 0) before division). Use try-catch.
+
+
+
+NoSuchElementException
+Why It Occurs: Element not found on the page (e.g., incorrect locator or element not loaded).
+How to Solve: Verify locator (e.g., ID, XPath). Use WebDriverWait for element to load.
+ElementNotInteractableException
+Why It Occurs: Element is present but not interactable (e.g., hidden, disabled, or overlapped).
+How to Solve: Ensure element is visible/enabled using WebDriverWait. Use JavaScriptExecutor to interact.
+TimeoutException
+Why It Occurs: WebDriverWait times out because the condition (e.g., element visibility) isn’t met.
+How to Solve: Increase timeout duration or check page load. Verify the condition/expectation.
+StaleElementReferenceException
+Why It Occurs: Element is no longer attached to the DOM (e.g., page refreshed after locating).
+How to Solve: Re-locate the element after page refresh. Use a retry mechanism or WebDriverWait.
+NoSuchWindowException
+Why It Occurs: Trying to switch to a window that doesn’t exist (e.g., window closed).
+How to Solve: Verify window handle. Use driver.getWindowHandles() to check available windows.
+NoSuchFrameException
+Why It Occurs: Attempting to switch to a frame that doesn’t exist (e.g., incorrect frame ID).
+How to Solve: Verify frame ID/name/index. Use driver.switchTo().defaultContent() to reset.
+WebDriverException
+Why It Occurs: General WebDriver error (e.g., browser crashed, driver not initialized).
+How to Solve: Ensure WebDriver setup (e.g., ChromeDriver path). Restart browser/driver session.
+ElementClickInterceptedException
+Why It Occurs: Click is intercepted by another element (e.g., overlay or hidden element).
+How to Solve: Ensure element is clickable using WebDriverWait. Use JavaScript to click.
+InvalidSelectorException
+Why It Occurs: Incorrect syntax in locator (e.g., invalid XPath/CSS selector).
+How to Solve: Validate XPath/CSS syntax (e.g., use browser dev tools). Fix the locator.
+SessionNotCreatedException
+Why It Occurs: WebDriver session not created (e.g., browser version incompatible with driver).
+How to Solve: Match browser and WebDriver versions (e.g., Chrome with ChromeDriver). Update both.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
