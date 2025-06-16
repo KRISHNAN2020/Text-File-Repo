@@ -1,58 +1,8 @@
-Beautify the Below Log file and give me a proper Report file for this Log :>>>>>
+https://urldefense.com/v3/__https://www.vista.adp.com/IN__;!!P9vvK-4S!iQoPMzsoBabY0DJgg_i_1Wcjr5FesWndUjh_awkCGQGRB6GtSyIjxuPHyW5ca8qeKtBd5yObPfQyQMqTKkFq5Ng-tXOgdnU$
 
 
-5/21/25
-5:07:12.914 AM	
-2025-05-21 05:07:12,914 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Mappping MapZelleRiskScoreDetails
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:12.805 AM	
-2025-05-21 05:07:12,805 [40] DEBUG FiservLog.stdlog - OnNewPaymentNotification - Exiting GetConsumerPaymentProfileByPaymentProfileId
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:12.773 AM	
-2025-05-21 05:07:12,773 [40] DEBUG FiservLog.stdlog - OnNewPaymentNotification - Entering GetConsumerPaymentProfileByPaymentProfileId
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:12.742 AM	
-2025-05-21 05:07:12,742 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Checking maintenance window status for TDP
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:12.742 AM	
-2025-05-21 05:07:12,742 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Deserialization successful.
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:12.742 AM	
-2025-05-21 05:07:12,742 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Message text: [<?xml version="1.0" encoding="UTF-8"?>
-<OnNewPaymentNotification4.8 xmlns="http://clearxchange.com/release4_0"><event-id>65047844600</event-id><event-time>2025-05-21T09:07:11.317Z</event-time><payment><payment-id>BACqu8pwxd3b</payment-id><amount currency="USD">67.00</amount><initiation-time>2025-05-21T09:07:10.240Z</initiation-time><sender><organization-id>BAC</organization-id><sender-id>0AMAQK5SEOIY44S586V54EU341GTGC</sender-id><name>SUGUEHIRI FERREIRA</name><sender-type>person</sender-type><sender-fi-instrument>DDA</sender-fi-instrument></sender><product-type>p2p</product-type><directory-reference-number>BACqu8pwxd3b</directory-reference-number><real-time>true</real-time><disburser-details/><status><sent/></status><to-known-recipient><recipient-payment-profile-id>2cd5abfb-3759-4684-a9a1-9f1e62c22714</recipient-payment-profile-id><recipient-organization-id>TDP</recipient-organization-id><recipient-type>person</recipient-type><recipient-fi-instrument>DDA</recipient-fi-instrument></to-known-recipient></payment><zelle-risk-score><status>success</status><status-code>0</status-code><model><identifier>6000001</identifier><score>-9</score><reason-code><key>reason1</key><value>no reason</value></reason-code><attribute><key>r_tkn_vow_cons_rat</key><value>-1.00</value></attribute><attribute><key>rr_unq_senders_90d</key><value>18</value></attribute><attribute><key>rr_unq_senders_30d</key><value>12</value></attribute><attribute><key>rr_amt_max_12h</key><value>0.00</value></attribute><attribute><key>rr_amt_max_30d</key><value>180.00</value></attribute><attribute><key>nl_email_domain_match</key><value>0</value></attribute><attribute><key>token_org_tenure</key><value>1198.60</value></attribute><attribute><key>zfc_flag</key><value>0</value></attribute><attribute><key>rr_rat_cnt3d_7d</key><value>0.50</value></attribute><attribute><key>r_tkn_consecutive_cons_cnt</key><value>-1</value></attribute><attribute><key>rcomb_avg_trx_14d</key><value>143.36</value></attribute><attribute><key>rr_amt_max_1d</key><value>22.00</value></attribute><attribute><key>days_since_profile_update</key><value>1198.59</value></attribute><attribute><key>link_tkn_to_recip_acct_1d</key><value>1</value></attribute><attribute><key>rcomb_amt_rat_thru_4d</key><value>0.00</value></attribute><attribute><key>link_tkn_to_recip_acct_3d</key><value>1</value></attribute><attribute><key>rr_amt_14d</key><value>991.00</value></attribute><attribute><key>link_tkn_to_recip_acct_7d</key><value>1</value></attribute><attribute><key>rr_unq_senders_1d</key><value>1</value></attribute><attribute><key>token_status_changes_30d</key><value>0</value></attribute><attribute><key>rr_amt_7d</key><value>372.00</value></attribute><attribute><key>rr_unq_senders_7d</key><value>6</value></attribute><attribute><key>rcomb_cnt_1d</key><value>1</value></attribute><attribute><key>rcomb_dsnc_first_pay</key><value>1263.83</value></attribute><attribute><key>rr_amt_min_60d</key><value>22.00</value></attribute><attribute><key>token_tenure</key><value>1414.51</value></attribute><attribute><key>rcomb_rat_avg3d_7d</key><value>0.77</value></attribute><attribute><key>r_token_flips_30d</key><value>0</value></attribute><attribute><key>r_token_flips_1d</key><value>0</value></attribute><attribute><key>r_token_flips_7d</key><value>0</value></attribute><attribute><key>zfc_ato_3rdpty_recv_90d</key><value>0</value></attribute><attribute><key>zfc_scam_recv_90d</key><value>0</value></attribute><status-code>0</status-code></model></zelle-risk-score></OnNewPaymentNotification4.8>]
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:12.742 AM	
-2025-05-21 05:07:12,742 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - MessageReadTime:5/21/2025 5:07:12 AM
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:12.742 AM	
-2025-05-21 05:07:12,742 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Entering ProcessMessage for OnNewPaymentNotification48.
-host = LWPPFTKEHWS08source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:08.751 AM	
-2025-05-21 05:07:08,751 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Mappping MapZelleRiskScoreDetails
-host = LWPPFTKEHWS06source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:08.648 AM	
-2025-05-21 05:07:08,648 [40] DEBUG FiservLog.stdlog - OnNewPaymentNotification - Exiting GetConsumerPaymentProfileByPaymentProfileId
-host = LWPPFTKEHWS06source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:08.611 AM	
-2025-05-21 05:07:08,611 [40] DEBUG FiservLog.stdlog - OnNewPaymentNotification - Entering GetConsumerPaymentProfileByPaymentProfileId
-host = LWPPFTKEHWS06source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:08.596 AM	
-2025-05-21 05:07:08,596 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Checking maintenance window status for NAV
-host = LWPPFTKEHWS06source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
-5/21/25
-5:07:08.596 AM	
-2025-05-21 05:07:08,596 [40] INFO  FiservLog.stdlog - OnNewPaymentNotification - Deserialization successful.
-host = LWPPFTKEHWS06source = C:\Logs\Builder4\CxcProcessorWinService\CxcProcessorLogV4_0.05-21-2025-05.xsourcetype = zelle:cxcprocessorservice
+Username : Krish123ADP
+Password : Chan@05Krish
+
 
 
